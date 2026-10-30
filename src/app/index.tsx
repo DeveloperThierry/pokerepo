@@ -1,98 +1,129 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import Header from "@/components/Header";
+import { usePokemons } from "@/context/PokemonContext";
+import { useUser } from "@/context/UserContext";
+import { Link, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+
+const pokemonTypeColors: Record<string, string> = {
+  normal: "#A8A878",
+  fire: "#F08030",
+  water: "#6890F0",
+  electric: "#F8D030",
+  grass: "#78C850",
+  ice: "#98D8D8",
+  fighting: "#C03028",
+  poison: "#A040A0",
+  ground: "#E0C068",
+  flying: "#A890F0",
+  psychic: "#F85888",
+  bug: "#A8B820",
+  rock: "#B8A038",
+  ghost: "#705898",
+  dragon: "#7038F8",
+  steel: "#B8B8D0",
+  fairy: "#EE99AC",
+  dark: "#705848",
+};
+export default function Index() {
+  const router = useRouter();
+  const { name } = useUser();
+  const {pokemons, setPokemons} = usePokemons()
+  const [filteredPokemons, setFilteredPokemons] = useState<Pokemon[]>([]);
+  const [search, setSearch] = useState("");
+  
+
+  useEffect(() => {
+    const filterPokemons = () => {
+      if (search.trimStart().trimEnd()) {
+        setFilteredPokemons(
+          pokemons.filter((p) =>
+            p.name.toLowerCase().includes(search.toLowerCase())
+          )
+        );
+      } else {
+        setFilteredPokemons(pokemons);
+      }
+    };
+    filterPokemons();
+  }, [search, pokemons]);
+
+  // if(!name || name.trim() == "") return <Redirect href={"/welcome"}/>
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
-
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <View style={styles.container}>
+      <Header />
+      <TextInput
+        style={styles.SearchField}
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Search pokemon by name..."
+      />
+      <Text style={styles.title}>PokeDex</Text>
+      <FlatList
+        contentContainerStyle={styles.PokemonContainer}
+        ListEmptyComponent={<Text>No Pokemons Found</Text>}
+        data={filteredPokemons}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }: { item: Pokemon }) => (
+          <Link href={`/details/${item.id}`}>
+            <View
+              style={[
+                styles.PokemonCard,
+                { backgroundColor: pokemonTypeColors[item.types[0].type.name] },
+              ]}
+            >
+              <Image source={{ uri: item.image }} height={24} width={24} />
+              <Text style={styles.Name}>
+                {item.name.charAt(0).toUpperCase() + item.name.slice(1)}
+              </Text>
+            </View>
+          </Link>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    paddingHorizontal: 10,
+    paddingVertical: 30,
+    gap: 10,
   },
   title: {
-    textAlign: 'center',
+    fontSize: 21,
+    fontWeight: "bold",
   },
-  code: {
-    textTransform: 'uppercase',
+  PokemonContainer: {
+    gap: 10,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  PokemonCard: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 5,
+    borderRadius: 5,
+    padding: 10,
+    alignItems: "center",
+    width: "100%",
+  },
+  Name: {
+    fontSize: 20,
+    fontWeight: "semibold",
+  },
+  SearchField: {
+    borderWidth: 1,
+    borderColor: "black",
+    borderRadius: 10,
+    padding: 4,
   },
 });
